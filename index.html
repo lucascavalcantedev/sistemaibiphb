@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema IBIPHB | Gestão</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-body: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --sidebar-width: 260px;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        
+        body { 
+            margin: 0; 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+
+        /* --- LOGIN SCREEN --- */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            z-index: 9999; display: flex; justify-content: center; align-items: center;
+        }
+        .login-card {
+            background: white; padding: 40px; border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); width: 100%; max-width: 400px;
+            text-align: center;
+        }
+        .login-card h2 { margin-top: 0; color: var(--primary); }
+        .login-card input {
+            width: 100%; padding: 12px; margin: 15px 0; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 16px;
+        }
+        .login-card button {
+            width: 100%; padding: 12px; background: var(--primary); color: white;
+            border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
+            transition: 0.2s;
+        }
+        .login-card button:hover { background: var(--primary-dark); }
+
+        /* --- MAIN LAYOUT --- */
+        .app-container { display: flex; height: 100vh; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            border-right: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            transition: 0.3s;
+        }
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .sidebar-header i { font-size: 24px; color: var(--primary); }
+        .sidebar-header h3 { margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main); }
+        
+        .nav-menu { padding: 20px; flex: 1; list-style: none; margin: 0; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px; margin-bottom: 8px;
+            color: var(--text-muted); text-decoration: none;
+            border-radius: 8px; cursor: pointer; transition: 0.2s;
+            font-weight: 500;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: #eff6ff; color: var(--primary);
+        }
+        .nav-item i { width: 20px; text-align: center; }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); text-align: center;}
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1; overflow-y: auto; position: relative;
+            display: flex; flex-direction: column;
+        }
+        
+        .top-bar {
+            background: white; padding: 15px 30px;
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .menu-toggle { display: none; font-size: 20px; cursor: pointer; color: var(--text-main); }
+        .user-info { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
+        .user-avatar { width: 35px; height: 35px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+        /* VIEWS */
+        .view-section { padding: 30px; display: none; animation: fadeIn 0.3s ease; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .section-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .section-title { font-size: 24px; font-weight: 700; margin: 0; }
+        
+        /* CARDS & COMPONENTS */
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border); margin-bottom: 20px; }
+        
+        /* Dashboard Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; border-left: 5px solid var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .stat-card h4 { margin: 0 0 10px 0; color: var(--text-muted); font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .val { font-size: 28px; font-weight: 700; color: var(--text-main); }
+        
+        /* Tables */
+        .table-container { overflow-x: auto; background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { background: #f8fafc; text-align: left; padding: 15px; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid var(--border); }
+        td { padding: 15px; border-bottom: 1px solid var(--border); color: var(--text-main); }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: #f8fafc; }
+
+        /* Forms */
+        .form-row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
+        .form-group { flex: 1; min-width: 200px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: var(--text-muted); }
+        .form-control { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; transition: 0.2s; }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        /* Buttons */
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        /* PIX Items Styles */
+        .pix-item {
+            background: #fff; border: 1px solid var(--border); padding: 20px;
+            margin-bottom: 15px; border-radius: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-left: 4px solid var(--warning);
+        }
+        .pix-info strong { color: var(--text-main); font-size: 16px; }
+        .pix-meta { font-size: 13px; color: var(--text-muted); margin-top: 5px; display: block; }
+        .badge-match { background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .badge-nomatch { background: #fef9c3; color: #854d0e; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+
+        /* MODAL */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;
+            backdrop-filter: blur(3px);
+        }
+        .modal-content {
+            background: white; width: 500px; max-width: 90%; padding: 30px;
+            border-radius: 12px; position: relative; animation: slideDown 0.3s;
+        }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .close-modal { position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; color: var(--text-muted); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: -100%; height: 100%; z-index: 1000; box-shadow: 5px 0 15px rgba(0,0,0,0.1); }
+            .sidebar.show { left: 0; }
+            .menu-toggle { display: block; }
+            .pix-item { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .pix-item div:last-child { width: 100%; display: flex; gap: 10px; }
+            .pix-item .btn { flex: 1; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-card">
+            <div style="font-size: 40px; color: var(--primary); margin-bottom: 10px;">
+                <i class="fas fa-church"></i>
+            </div>
+            <h2>Sistema IBIPHB</h2>
+            <p style="color: var(--text-muted);">Gestão Eclesiástica Integrada</p>
+            <input type="password" id="access-code" placeholder="Código de Acesso">
+            <button onclick="handleLogin()">Entrar no Sistema</button>
+        </div>
+    </div>
+
+    <div id="app-layout" class="app-container" style="display: none;">
+        
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-church"></i>
+                <h3>IBIPHB Admin</h3>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" onclick="switchView('dashboard', this)">
+                    <i class="fas fa-chart-pie"></i> Dashboard
+                </li>
+                <li class="nav-item" onclick="switchView('membros', this)">
+                    <i class="fas fa-users"></i> Membros
+                </li>
+                <li class="nav-item" onclick="switchView('financeiro', this)">
+                    <i class="fas fa-wallet"></i> Financeiro / PIX
+                </li>
+                <li class="nav-item" onclick="switchView('despesas', this)">
+                    <i class="fas fa-file-invoice-dollar"></i> Despesas
+                </li>
+                <li class="nav-item" onclick="switchView('relatorios', this)">
+                    <i class="fas fa-print"></i> Relatórios Finais
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                Sistema v2.0 <br>
+                &copy; 2025 IBIPHB
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <i class="fas fa-bars menu-toggle" onclick="toggleSidebar()"></i>
+                    <span id="current-date" style="color: var(--text-muted); font-size: 14px;"></span>
+                </div>
+                <div class="user-info">
+                    <span>Administrador</span>
+                    <div class="user-avatar"><i class="fas fa-user"></i></div>
+                </div>
+            </header>
+
+            <div style="padding: 20px;"> 
+                
+                <section id="view-dashboard" class="view-section active">
+                    <div class="section-header">
+                        <h2 class="section-title">Visão Geral Financeira</h2>
+                        <button class="btn btn-primary btn-sm" onclick="loadDashboard()"><i class="fas fa-sync"></i> Atualizar</button>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" style="border-color: var(--success);">
+                            <h4>Entradas (Mês)</h4>
+                            <div class="val" id="dash-in" style="color: var(--success)">R$ 0,00</div>
+                        </div>
+                        <div class="stat-card" style="border-color: var(--danger);">
+                            <h4>Saídas (Mês)</h4>
+                            <div class="val" id="dash-out" style="color: var(--danger)">R$ 0,00</div>
+                        </div>
+                        <div class="stat-card" style="border-color: var(--primary);">
+                            <h4>Saldo Operacional</h4>
+                            <div class="val" id="dash-bal">R$ 0,00</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="margin-top:0;">Fluxo Mensal</h3>
+                        <div style="height: 300px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 8px;">
+                            <p style="color: var(--text-muted);"><i class="fas fa-chart-area"></i> Gráfico será renderizado aqui</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-membros" class="view-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Gestão de Membros</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-success" onclick="exportMembersExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+                            <button class="btn btn-primary" onclick="openModal('modal-member')"><i class="fas fa-plus"></i> Novo Membro</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="form-row" style="margin-bottom: 20px;">
+                             <input type="text" class="form-control" placeholder="🔍 Buscar membro por nome ou código..." onkeyup="filterMembers(this.value)">
+                        </div>
+                        <div class="table-container">
+                            <div id="members-list">Carregando lista...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-financeiro" class="view-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Controle Financeiro</h2>
+                        <button class="btn btn-primary" onclick="openModal('modal-manual-entry')"><i class="fas fa-hand-holding-usd"></i> Entrada Manual (Espécie)</button>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="margin-top: 0; color: var(--warning);"><i class="fas fa-mobile-alt"></i> Transações PIX Pendentes</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Valide as transações abaixo para que entrem no caixa.</p>
+                        <div id="pix-pending-list">
+                            <p style="text-align: center; color: var(--text-muted); padding: 20px;">Buscando transações...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-despesas" class="view-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Despesas e Saídas</h2>
+                        <button class="btn btn-danger" onclick="openModal('modal-expense')"><i class="fas fa-minus-circle"></i> Nova Despesa</button>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="table-container">
+                            <div id="expenses-list">Carregando...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-relatorios" class="view-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Relatório Mensal Final</h2>
+                    </div>
+                    <div class="card" style="max-width: 600px; margin: 0 auto;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <i class="fas fa-file-pdf" style="font-size: 40px; color: var(--danger);"></i>
+                            <p>Geração do Balancete Mensal com Saldo a Transportar</p>
+                        </div>
+                        
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label>Saldo Transportado do Mês Anterior (R$)</label>
+                            <input type="number" class="form-control" id="rep-prev-balance" value="0.00" step="0.01">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Mês de Referência</label>
+                                <select id="rep-month" class="form-control">
+                                    <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+                                    <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+                                    <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+                                    <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Ano</label>
+                                <select id="rep-year" class="form-control">
+                                    <option value="2024">2024</option><option value="2025" selected>2025</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 20px;" onclick="generatePDF()">
+                            <i class="fas fa-download"></i> Baixar Relatório Completo (PDF)
+                        </button>
+                    </div>
+                </section>
+
+            </div> </main>
+    </div>
+
+    <div id="modal-member" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('modal-member')">&times;</span>
+            <h3><i class="fas fa-user-plus"></i> Novo Membro</h3>
+            <div class="form-group" style="margin-bottom:15px">
+                <label>Código de Registro</label>
+                <input type="text" id="mem-code" class="form-control" placeholder="Ex: D001">
+            </div>
+            <div class="form-group" style="margin-bottom:15px">
+                <label>Nome Completo</label>
+                <input type="text" id="mem-name" class="form-control" placeholder="Nome Completo">
+            </div>
+            <div class="form-group" style="margin-bottom:15px">
+                <label>Data de Nascimento</label>
+                <input type="date" id="mem-dob" class="form-control">
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="addMember()">Salvar Membro</button>
+        </div>
+    </div>
+
+    <div id="modal-manual-entry" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('modal-manual-entry')">&times;</span>
+            <h3><i class="fas fa-money-bill-wave"></i> Entrada Manual (Espécie)</h3>
+            <div class="form-group" style="margin-bottom:15px">
+                <label>Nome do Ofertante (Ou Anônimo)</label>
+                <input type="text" id="man-name" class="form-control">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" id="man-amount" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="man-type" class="form-control">
+                        <option value="dizimo">Dízimo</option>
+                        <option value="oferta">Oferta</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-success" style="width:100%" onclick="addManualEntry()">Confirmar Entrada</button>
+        </div>
+    </div>
+
+    <div id="modal-expense" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('modal-expense')">&times;</span>
+            <h3><i class="fas fa-receipt"></i> Registrar Saída</h3>
+            <div class="form-group" style="margin-bottom:15px">
+                <label>Descrição da Despesa</label>
+                <input type="text" id="exp-desc" class="form-control" placeholder="Ex: Conta de Luz">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <input type="text" id="exp-cat" class="form-control" placeholder="Ex: Utilidades">
+                </div>
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" id="exp-amount" class="form-control" step="0.01">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:20px">
+                <label>Data</label>
+                <input type="date" id="exp-date" class="form-control">
+            </div>
+            <button class="btn btn-danger" style="width:100%" onclick="addExpense()">Registrar Saída</button>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAÇÃO
+        // Deixar vazio faz com que o front chame a API no mesmo domínio (Ideal para Render Fullstack)
+        const API_URL = ""; 
+        
+        // --- DATA E HORA ---
+        const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('pt-BR', optionsDate);
+
+        // --- NAVEGAÇÃO E UI ---
+        function handleLogin() {
+            // Autenticação simples Front-end (Recomenda-se token JWT no real)
+            const code = document.getElementById('access-code').value;
+            if(code === 'admin123') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-layout').style.display = 'flex';
+                loadDashboard();
+            } else {
+                alert('Código de acesso inválido.');
+            }
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+        }
+
+        function switchView(viewId, element) {
+            // Esconde todas as sections
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            // Mostra a desejada
+            document.getElementById('view-' + viewId).classList.add('active');
+            
+            // Atualiza menu ativo
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if(element) element.classList.add('active');
+
+            // Carrega dados específicos
+            if(viewId === 'dashboard') loadDashboard();
+            if(viewId === 'membros') loadMembers();
+            if(viewId === 'financeiro') loadTransactions();
+            if(viewId === 'despesas') loadExpenses();
+            
+            // Fecha sidebar no mobile ao clicar
+            if(window.innerWidth < 768) toggleSidebar();
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Fechar modal ao clicar fora
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = "none";
+            }
+        }
+
+        // --- LÓGICA DE DADOS (INTEGRAÇÃO API) ---
+
+        // 1. DASHBOARD
+        async function loadDashboard() {
+            try {
+                const res = await fetch(`${API_URL}/api/dashboard`);
+                const data = await res.json();
+                
+                document.getElementById('dash-in').innerText = `R$ ${data.inflow.toFixed(2)}`;
+                document.getElementById('dash-out').innerText = `R$ ${data.outflow.toFixed(2)}`;
+                document.getElementById('dash-bal').innerText = `R$ ${data.balance.toFixed(2)}`;
+            } catch(e) { 
+                console.log("Erro ao carregar dashboard", e);
+            }
+        }
+
+        // 2. MEMBROS
+        let allMembers = []; // Cache para filtro local
+        async function loadMembers() {
+            try {
+                const res = await fetch(`${API_URL}/api/members`);
+                allMembers = await res.json();
+                renderMembersTable(allMembers);
+            } catch(e) { console.error(e); }
+        }
+
+        function renderMembersTable(members) {
+            let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cód.</th>
+                        <th>Nome Completo</th>
+                        <th>Nascimento</th>
+                        <th style="text-align:right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            
+            if(members.length === 0) html += `<tr><td colspan="4" style="text-align:center">Nenhum membro encontrado.</td></tr>`;
+
+            members.forEach(m => {
+                html += `
+                <tr>
+                    <td><span style="font-weight:bold; color:var(--primary)">${m.code}</span></td>
+                    <td>${m.full_name}</td>
+                    <td>${new Date(m.birth_date).toLocaleDateString('pt-BR')}</td>
+                    <td style="text-align:right">
+                        <button class="btn btn-sm btn-danger" onclick="deleteMember(${m.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('members-list').innerHTML = html;
+        }
+
+        function filterMembers(query) {
+            const filtered = allMembers.filter(m => 
+                m.full_name.toLowerCase().includes(query.toLowerCase()) || 
+                m.code.toLowerCase().includes(query.toLowerCase())
+            );
+            renderMembersTable(filtered);
+        }
+
+        async function addMember() {
+            const code = document.getElementById('mem-code').value;
+            const name = document.getElementById('mem-name').value;
+            const dob = document.getElementById('mem-dob').value;
+            
+            if(!code || !name) return alert("Preencha os campos obrigatórios");
+
+            await fetch(`${API_URL}/api/members`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({code, full_name: name, birth_date: dob})
+            });
+            
+            closeModal('modal-member');
+            alert('Membro cadastrado com sucesso!');
+            loadMembers();
+            document.getElementById('mem-code').value = "";
+            document.getElementById('mem-name').value = "";
+        }
+
+        async function deleteMember(id) {
+            if(confirm("Tem certeza que deseja excluir este membro?")) {
+                await fetch(`${API_URL}/api/members?id=${id}`, { method: 'DELETE' });
+                loadMembers();
+            }
+        }
+
+        function exportMembersExcel() {
+            alert("Em breve: Download Excel implementado no backend.");
+        }
+
+        // 3. FINANCEIRO (PIX & MANUAL)
+        async function loadTransactions() {
+            try {
+                const res = await fetch(`${API_URL}/api/transactions`);
+                const data = await res.json();
+                
+                let html = "";
+                // Filtra apenas pendentes para essa lista
+                const pending = data.filter(t => t.status === 'pendente');
+
+                if(pending.length === 0) {
+                    document.getElementById('pix-pending-list').innerHTML = `<div style="text-align:center; padding:30px; color:#aaa"><i class="fas fa-check-circle" style="font-size:30px; margin-bottom:10px"></i><br>Tudo em dia! Nenhuma transação pendente.</div>`;
+                    return;
+                }
+
+                pending.forEach(t => {
+                    let matchInfo = "";
+                    if (t.member_real_name) {
+                        matchInfo = `<span class="badge-match"><i class="fas fa-link"></i> Vinculado a: ${t.member_real_name} (${t.member_code})</span>`;
+                    } else {
+                        matchInfo = `<span class="badge-nomatch"><i class="fas fa-exclamation-triangle"></i> Sem vínculo automático</span>`;
+                    }
+
+                    html += `
+                    <div class="pix-item">
+                        <div class="pix-info">
+                            <div style="font-size:12px; color:#999; margin-bottom:5px">ID: ${t.id} • ${new Date(t.transaction_date).toLocaleString()}</div>
+                            <strong>${t.payer_name}</strong> enviou <strong style="color:var(--success)">R$ ${parseFloat(t.amount).toFixed(2)}</strong>
+                            <div class="pix-meta">${matchInfo}</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-success btn-sm" onclick="confirmPix(${t.id}, 'dizimo')"><i class="fas fa-hand-holding-heart"></i> É Dízimo</button>
+                            <button class="btn btn-primary btn-sm" onclick="confirmPix(${t.id}, 'oferta')"><i class="fas fa-gift"></i> É Oferta</button>
+                        </div>
+                    </div>`;
+                });
+                
+                document.getElementById('pix-pending-list').innerHTML = html;
+            } catch(e) { console.error(e); }
+        }
+
+        async function confirmPix(id, type) {
+            if(!confirm(`Confirmar esta transação como ${type.toUpperCase()}?`)) return;
+
+            await fetch(`${API_URL}/api/transactions`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id, type, action: 'confirm'})
+            });
+            loadTransactions(); 
+            loadDashboard();
+        }
+
+        async function addManualEntry() {
+            const name = document.getElementById('man-name').value;
+            const amount = document.getElementById('man-amount').value;
+            const type = document.getElementById('man-type').value;
+
+            if(!amount) return alert("Digite o valor.");
+
+            await fetch(`${API_URL}/api/transactions`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: name || "Anônimo", 
+                    amount, 
+                    type, 
+                    action: 'manual_add',
+                    status: 'confirmado'
+                })
+            });
+            
+            closeModal('modal-manual-entry');
+            alert('Entrada manual registrada!');
+            loadDashboard();
+        }
+
+        // 4. DESPESAS
+        async function loadExpenses() {
+            try {
+                const res = await fetch(`${API_URL}/api/expenses`);
+                const data = await res.json();
+                
+                let html = `<table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Ação</th></tr></thead><tbody>`;
+                data.forEach(e => {
+                    html += `
+                    <tr>
+                        <td>${new Date(e.expense_date).toLocaleDateString('pt-BR')}</td>
+                        <td>${e.description}</td>
+                        <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:12px">${e.category}</span></td>
+                        <td style="color:var(--danger); font-weight:bold">R$ ${parseFloat(e.amount).toFixed(2)}</td>
+                        <td><button class='btn btn-sm btn-danger' onclick="delExp(${e.id})"><i class="fas fa-trash"></i></button></td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+                document.getElementById('expenses-list').innerHTML = html;
+            } catch(e) { console.error(e); }
+        }
+
+        async function addExpense() {
+            const desc = document.getElementById('exp-desc').value;
+            const cat = document.getElementById('exp-cat').value;
+            const amount = document.getElementById('exp-amount').value;
+            const date = document.getElementById('exp-date').value;
+
+            if(!desc || !amount || !date) return alert("Preencha os dados da despesa");
+
+            await fetch(`${API_URL}/api/expenses`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({description: desc, category: cat, amount, date})
+            });
+            
+            closeModal('modal-expense');
+            alert('Despesa Registrada');
+            loadExpenses();
+            loadDashboard();
+        }
+
+        async function delExp(id) {
+            if(confirm('Excluir esta despesa?')) {
+                await fetch(`${API_URL}/api/expenses?id=${id}`, { method: 'DELETE' });
+                loadExpenses();
+                loadDashboard();
+            }
+        }
+
+        // 5. RELATÓRIOS
+        async function generatePDF() {
+            const prev = document.getElementById('rep-prev-balance').value;
+            const month = document.getElementById('rep-month').value;
+            const year = document.getElementById('rep-year').value;
+            
+            const btn = document.querySelector('#view-relatorios .btn-primary');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "Gerando PDF...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/api/report/final`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        prev_balance: parseFloat(prev),
+                        month: parseInt(month),
+                        year: parseInt(year)
+                    })
+                });
+                
+                if(res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Relatorio_IBIPHB_${month}_${year}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    alert('Erro ao gerar relatório. Verifique o console.');
+                }
+            } catch(e) {
+                console.error(e);
+                alert("Erro de conexão.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+    </script>
+</body>
+</html>
